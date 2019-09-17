@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package mavsdk.rpc.passthrough;
+
+option java_package = "io.mavsdk.passthrough";
+option java_outer_classname = "PassthroughProto";
+
+service PassthroughService {
+    rpc SendMessage(SendMessageRequest) returns(SendMessageResponse){}
+    rpc GetOurSysId(GetOurSysIdRequest) returns(GetOurSysIdResponse){}
+    rpc GetOurCompId(GetOurCompIdRequest) returns(GetOurCompIdResponse){}
+    rpc GetTargetSysId(GetTargetSysIdRequest) returns(GetTargetSysIdResponse){}
+    rpc GetTargetCompId(GetTargetCompIdRequest) returns(GetTargetCompIdResponse){}
+    rpc SendCommandInt(SendCommandIntRequest) returns(SendCommandIntResponse){}
+    rpc SendCommandLong(SendCommandLongRequest) returns(SendCommandLongResponse){}
+}
+
+message SendMessageRequest {
+    MavlinkMessage mavlink_message = 1;
+}
+message SendMessageResponse {
+    PassthroughResult passthrough_result = 1;
+}
+
+message GetOurSysIdRequest {}
+message GetOurSysIdResponse {
+    uint32 sysid = 1;
+}
+
+message GetOurCompIdRequest {}
+message GetOurCompIdResponse {
+    uint32 compid = 1;
+}
+
+message GetTargetSysIdRequest {}
+message GetTargetSysIdResponse {
+    uint32 target_sysid = 1;
+}
+
+message GetTargetCompIdRequest {}
+message GetTargetCompIdResponse {
+    uint32 target_compid = 1;
+}
+
+message SendCommandIntRequest {
+    CommandInt command_int = 1;
+}
+message SendCommandIntResponse {
+    PassthroughResult passthrough_result = 1;
+}
+
+message SendCommandLongRequest {
+    CommandLong command_long = 1;
+}
+message SendCommandLongResponse {
+    PassthroughResult passthrough_result = 1;
+}
+
+message MavlinkMessage {
+    uint32 checksum = 1;
+    uint32 magic = 2;
+    uint32 len = 3;
+    uint32 incompat_flags = 4;
+    uint32 compat_flags = 5;
+    uint32 seq = 6;
+    uint32 sysid = 7;
+    uint32 compid = 8;
+    uint32 msgid = 9;
+    repeated uint64 payload64 = 10;
+    repeated uint32 ck = 11;
+}
+
+message CommandInt {
+    uint32 target_system_id = 1;
+    uint32 target_component_id = 2;
+    uint64 command = 3;
+    bool current = 4;
+    bool autocontinue = 5;
+    ParamsInt params = 6;
+}
+
+message ParamsInt {
+    float param1 = 1;
+    float param2 = 2;
+    float param3 = 3;
+    float param4 = 4;
+    int32 x = 5;
+    int32 y = 6;
+    float z = 7;
+}
+
+message CommandLong {
+    uint32 target_system_id = 1;
+    uint32 target_component_id = 2;
+    uint64 command = 3;
+    uint32 confirmation = 4;
+    ParamsLong params = 5;
+}
+
+message ParamsLong {
+    float param1 = 1;
+    float param2 = 2;
+    float param3 = 3;
+    float param4 = 4;
+    float param5 = 5;
+    float param6= 6;
+    float param7 = 7;
+}
+
+message PassthroughResult {
+    enum Result {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        CONNECTION_ERROR = 2;
+    }
+    
+    Result result = 1;
+    string result_str = 2;
+}
