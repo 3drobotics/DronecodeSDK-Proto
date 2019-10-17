@@ -16,6 +16,8 @@ service TelemetryService {
     rpc SubscribeHome(SubscribeHomeRequest) returns(stream HomeResponse) {}
     // Subscribe to in-air updates.
     rpc SubscribeInAir(SubscribeInAirRequest) returns(stream InAirResponse) {}
+    // Subscribe to landed state updates
+    rpc SubscribeLandedState(SubscribeLandedStateRequest) returns(stream LandedStateResponse) {}
     // Subscribe to armed updates.
     rpc SubscribeArmed(SubscribeArmedRequest) returns(stream ArmedResponse) {}
     // Subscribe to 'attitude' updates (quaternion).
@@ -42,8 +44,12 @@ service TelemetryService {
     rpc SubscribeRcStatus(SubscribeRcStatusRequest) returns(stream RcStatusResponse) {}
     // Subscribe to 'status text' updates.
     rpc SubscribeStatusText(SubscribeStatusTextRequest) returns(stream StatusTextResponse) {}
+    // Subscribe to 'actuator control target' updates.
     rpc SubscribeActuatorControlTarget(SubscribeActuatorControlTargetRequest) returns(stream ActuatorControlTargetResponse) {}
+    // Subscribe to 'actuator output status' updates.
     rpc SubscribeActuatorOutputStatus(SubscribeActuatorOutputStatusRequest) returns(stream ActuatorOutputStatusResponse) {}
+    // Subscribe to 'odometry' updates.
+    rpc SubscribeOdometry(SubscribeOdometryRequest) returns(stream OdometryResponse) {}
 }
 
 message SubscribePositionRequest {}
@@ -59,6 +65,11 @@ message HomeResponse {
 message SubscribeInAirRequest {}
 message InAirResponse {
     bool is_in_air = 1; // The next 'in-air' state
+}
+
+message SubscribeLandedStateRequest {}
+message LandedStateResponse {
+    LandedState landed_state = 1;
 }
 
 message SubscribeArmedRequest {}
@@ -78,7 +89,7 @@ message AttitudeEulerResponse {
 
 message SubscribeAttitudeAngularVelocityBodyRequest {}
 message AttitudeAngularVelocityBodyResponse {
-    AngularVelocityBody attitude_angular_velocity_body = 1;
+    AngularVelocityBody attitude_angular_velocity_body = 1; // The next angular velocity (rad/s)
 }
 
 message SubscribeCameraAttitudeQuaternionRequest {}
@@ -134,6 +145,11 @@ message ActuatorControlTargetResponse {
 message SubscribeActuatorOutputStatusRequest {}
 message ActuatorOutputStatusResponse {
     ActuatorOutputStatus actuator_output_status = 1; // Actuator output status
+}
+
+message SubscribeOdometryRequest {}
+message OdometryResponse {
+    Odometry odometry = 1; // Odometry
 }
 
 // Position type in global coordinates.
@@ -269,4 +285,57 @@ message ActuatorControlTarget {
 message ActuatorOutputStatus {
     uint32 active = 1;
     repeated float actuator = 2;
+}
+
+// Landed State enumeration
+enum LandedState{
+    LANDED_STATE_UNKNOWN = 0;
+    LANDED_STATE_ON_GROUND = 1;
+    LANDED_STATE_IN_AIR = 2;
+    LANDED_STATE_TAKING_OFF = 3;
+    LANDED_STATE_LANDING = 4;
+}
+
+// Odometry message type.
+message Odometry {
+    // Mavlink frame id
+    enum MavFrame {
+        UNDEF = 0;
+        BODY_NED = 8; // Setpoint in body NED frame. This makes sense if all position control is externalized - e.g. useful to command 2 m/s^2 acceleration to the right.
+        VISION_NED = 16; // Odometry local coordinate frame of data given by a vision estimation system, Z-down (x: north, y: east, z: down).
+        ESTIM_NED = 18; // Odometry local coordinate frame of data given by an estimator running onboard the vehicle, Z-down (x: north, y: east, z: down).
+    }
+
+    uint64 time_usec = 1; // Timestamp (0 to use Backend timestamp).
+    MavFrame frame_id = 2; // Coordinate frame of reference for the pose data.
+    MavFrame child_frame_id = 3;  // Coordinate frame of reference for the velocity in free space (twist) data.
+    PositionBody position_body = 4; // Position.
+    Quaternion q = 5; // Quaternion components, w, x, y, z (1 0 0 0 is the null-rotation).
+    SpeedBody speed_body = 6; // Linear speed (m/s).
+    AngularVelocityBody angular_velocity_body = 7; // Angular speed (rad/s).
+    Covariance pose_covariance = 8; // Pose cross-covariance matrix.
+    Covariance velocity_covariance = 9; // Velocity cross-covariance matrix.
+}
+
+/* Covariance type.
+ * Row-major representation of a 6x6 cross-covariance matrix
+ * upper right triangle.
+ * Set first to NaN if unknown.
+ */
+message Covariance {
+    repeated float covariance_matrix = 1;
+}
+
+// Speed type, represented in the Body (X Y Z) frame and in metres/second.
+message SpeedBody {
+    float velocity_x_m_s = 1; // Velocity in X in metres/second
+    float velocity_y_m_s = 2; // Velocity in Y in metres/second
+    float velocity_z_m_s = 3; // Velocity in Z in metres/second
+}
+
+// Position type, represented in the Body (X Y Z) frame
+message PositionBody {
+    float x_m = 1; // X Position in metres.
+    float y_m = 2; // Y Position in metres.
+    float z_m = 3; // Z Position in metres.
 }
